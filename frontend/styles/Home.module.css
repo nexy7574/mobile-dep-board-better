@@ -1,0 +1,61 @@
+.container {
+  padding: 0 2rem;
+}
+
+.main {
+  min-height: 100vh;
+  padding: 4rem 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.title {
+  margin: 0;
+  line-height: 1.15;
+  font-size: 2rem;
+}
+
+.title,
+.description {
+  text-align: center;
+}
+
+.description {
+  margin: 4rem 0;
+  line-height: 1.5;
+  font-size: 1.25rem;
+}
+
+.timetable {
+  border: 1px solid black;
+  text-align: center;
+  margin: 2px;
+}
+
+.timetable tbody tr td {
+  border: 1px solid black;
+  padding: .5em;
+}
+
+.timetable thead tr th {
+  margin: 2px;
+  padding: .5em
+}
+
+@media (prefers-color-scheme: dark) {
+  .timetable, .timetable tbody tr td {
+    border: 1px solid white;
+  }
+}
+
+@media screen and (max-width: 410px) {
+  .timetable thead tr th {
+    font-size: 10px
+  }
+  .title {
+    font-size: 1.5rem
+  }
+}
