@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from bs4 import BeautifulSoup
+from urllib.parse import unquote
+import re
 from httpx import Client, Timeout
 
 app = FastAPI()
@@ -10,45 +12,45 @@ app.state.client = Client(timeout=Timeout(60))
 @app.get("/stop/{stop_id}")
 def get_stop(stop_id: int):
     """Fetches a stop's ID"""
-    url = "http://www.rslpublic.co.uk/mobiledepboard/WYPTEDefaultMenu.aspx"
+    stop_id = str(stop_id)
+    if not stop_id.startswith("450"):
+        stop_id = "450" + stop_id
+    url = "http://wymetro.at?%s" % stop_id
     response = app.state.client.get(
         url,
-        params={
-            "id": stop_id,
-            "cid": 595,
-            "RTI": True,
-        },
+        follow_redirects=True
     )
     soup = BeautifulSoup(response.text, "html.parser")
-    departures = soup.find_all("div", {"class": "deprow-inner"})
+    departures = soup.find_all("div", {"class": "deprow"})
+    parsed_url = unquote(str(response.url))
+    print(parsed_url)
     result = {
-        "url": str(response.url)
+        "url": re.search(r"shareURL=(http://deps\.at/\?\d+)", parsed_url).group(1)
     }
     for departure in departures:
-        children = list(filter(lambda x: x.get_text() != "\n", departure.div.children))
-        bus_name = children[0].get_text(strip=True)
+        # print(departure.prettify())
+        bus_name = departure.find(id="serviceDiv").get_text(strip=True)
+        values = {
+            "stand": "stand",
+            "destination": "destination",
+            "due": "time"
+        }
         result[bus_name] = {
             "name": bus_name,
             "stand": "Unknown",
             "destination": "Unknown",
             "time": "Unknown",
         }
-        for child in children[1:]:
-            # print(child)
-            _id = child.attrs.get("id", "unknown")
-            # print(_id)
-            if _id.endswith("Destination"):
-                result[bus_name]["destination"] = child.get_text(strip=True)
-            elif _id.endswith("Stand"):
-                result[bus_name]["stand"] = child.get_text(strip=True)
-            elif _id.endswith("Time"):
-                result[bus_name]["time"] = child.get_text(strip=True)
+        for key, value in values.items():
+            _result = departure.find(id=key + "Div")
+            if _result is not None:
+                result[bus_name][value] = _result.get_text(strip=True)
 
     return JSONResponse(
         result,
         200,
         headers={
-            "Cache-Control": "max-age=300, public",
+            "Cache-Control": "max-age=60, public",
         },
     )
 
