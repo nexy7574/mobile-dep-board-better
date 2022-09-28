@@ -15,17 +15,27 @@ def get_stop(stop_id: int):
     stop_id = str(stop_id)
     if not stop_id.startswith("450"):
         stop_id = "450" + stop_id
-    url = "http://wymetro.at?%s" % stop_id
+    url = "http://deps.at?%s" % stop_id
     response = app.state.client.get(
         url,
         follow_redirects=True
     )
+    if response.status_code == 200:
+        response = app.state.client.get(
+            "http://publicwyca.rslepi.co.uk/departureboards/mEPIDepartureBoard.aspx?id={0}&cid=595".format(stop_id)
+        )
     soup = BeautifulSoup(response.text, "html.parser")
     departures = soup.find_all("div", {"class": "deprow"})
     parsed_url = unquote(str(response.url))
-    print(parsed_url)
+    try:
+        share = re.search(r"shareURL=(http://deps\.at/\?\d+)", parsed_url).group(1)
+    except AttributeError:
+        if response.history:
+            share = str(response.history[-1].url)
+        else:
+            share = str(response.url)
     result = {
-        "url": re.search(r"shareURL=(http://deps\.at/\?\d+)", parsed_url).group(1)
+        "url": share
     }
     for departure in departures:
         # print(departure.prettify())
